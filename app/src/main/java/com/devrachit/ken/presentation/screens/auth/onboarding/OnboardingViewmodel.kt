@@ -91,6 +91,7 @@ class OnboardingViewmodel @Inject constructor(
                 dataStoreRepository.savePrimaryUsername(userData.username)
             }
             Timber.d("User ${userData.username} exists")
+            Log.d("OnboardingViewModel", "Successfully verified user ${userData}")
         } else {
             _userValues.value = _userValues.value.copy(
                 isLoadingUsername = false,
