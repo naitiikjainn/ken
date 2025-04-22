@@ -1,4 +1,4 @@
-package com.devrachit.ken.presentation.components
+package com.devrachit.ken.utility.composeUtility
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -15,12 +15,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import com.devrachit.ken.R
 import com.devrachit.ken.ui.theme.TextStyleInter14Lh16Fw600
 import com.devrachit.ken.ui.theme.TextStyleInter16Lh24Fw600
 import com.devrachit.ken.ui.theme.TextStyleInter20Lh24Fw700
-import com.devrachit.ken.utility.composeUtility.sdp
 
 @Composable
 fun ExitAppDialog(
