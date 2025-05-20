@@ -21,6 +21,7 @@ import com.devrachit.ken.domain.models.toQuestionProgressUiState
 import com.devrachit.ken.domain.usecases.getUserQuestionStatus.GetUserQuestionStatusUseCase
 import com.devrachit.ken.presentation.screens.dashboard.home.QuestionProgressUiState
 import com.devrachit.ken.utility.NetworkUtility.Resource
+import com.devrachit.ken.utility.constants.Constants.Companion.DEFAULT_USERNAME
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.AndroidEntryPoint
@@ -62,7 +63,7 @@ class SimpleTextWidgetProvider : AppWidgetProvider() {
         widgetScope.launch {
             var userName = "Loading..."
             try {
-                userName = dataStoreRepository.readPrimaryUsername() ?: "leetcode"
+                userName = dataStoreRepository.readPrimaryUsername() ?: DEFAULT_USERNAME
                 Log.d(TAG, "Username: $userName")
                 for (appWidgetId in appWidgetIds) {
                     val loadingViews = RemoteViews(context.packageName, R.layout.simple_text_widget)
