@@ -11,6 +11,9 @@ import com.devrachit.ken.domain.usecases.questionDetailsViewMode.GetQuestionDeta
 import com.devrachit.ken.domain.usecases.questionDetailsViewMode.SaveQuestionDetailsViewModeUseCase
 import com.devrachit.ken.domain.usecases.recentSubmissionLimit.GetRecentSubmissionLimitUseCase
 import com.devrachit.ken.domain.usecases.recentSubmissionLimit.SaveRecentSubmissionLimitUseCase
+import com.devrachit.ken.data.local.datastore.DataStoreRepository
+import com.devrachit.ken.data.remote.firebase.FirebaseRemoteConfigManager
+import com.devrachit.ken.domain.models.NavigationItems
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,7 +32,9 @@ class SettingsViewmodel@Inject constructor(
     private val getRecentSubmissionLimitUseCase: GetRecentSubmissionLimitUseCase,
     private val saveRecentSubmissionLimitUseCase: SaveRecentSubmissionLimitUseCase,
     private val getQuestionDetailsViewModeUseCase: GetQuestionDetailsViewModeUseCase,
-    private val saveQuestionDetailsViewModeUseCase: SaveQuestionDetailsViewModeUseCase
+    private val saveQuestionDetailsViewModeUseCase: SaveQuestionDetailsViewModeUseCase,
+    private val dataStoreRepository: DataStoreRepository,
+    private val firebaseRemoteConfigManager: FirebaseRemoteConfigManager
 ): ViewModel() {
     
     // Display Type State
@@ -47,6 +52,23 @@ class SettingsViewmodel@Inject constructor(
     // Question Details View Mode State
     private val _questionDetailsViewMode = MutableStateFlow("SIMPLE")
     val questionDetailsViewMode: StateFlow<String> = _questionDetailsViewMode.asStateFlow()
+
+    // Navigation Preferences State
+    private val _bottomNavItems = MutableStateFlow(NavigationItems.DEFAULT_BOTTOM_NAV)
+    val bottomNavItems: StateFlow<List<String>> = _bottomNavItems.asStateFlow()
+
+    private val _sideNavItems = MutableStateFlow(NavigationItems.DEFAULT_SIDE_NAV)
+    val sideNavItems: StateFlow<List<String>> = _sideNavItems.asStateFlow()
+
+    // Developer Message Visibility State
+    private val _showDeveloperMessage = MutableStateFlow(true)
+    val showDeveloperMessage: StateFlow<Boolean> = _showDeveloperMessage.asStateFlow()
+
+    private val _isUpdateAvailable = MutableStateFlow(false)
+    val isUpdateAvailable: StateFlow<Boolean> = _isUpdateAvailable.asStateFlow()
+
+    private val _updateUrl = MutableStateFlow("")
+    val updateUrl: StateFlow<String> = _updateUrl.asStateFlow()
 
     init {
         // Continuously observe display type changes from DataStore
@@ -82,6 +104,42 @@ class SettingsViewmodel@Inject constructor(
                 }
             }
         }
+
+        // Continuously observe bottom nav items changes from DataStore
+        viewModelScope.launch(Dispatchers.IO) {
+            dataStoreRepository.bottomNavItems.collect { items ->
+                _bottomNavItems.value = items
+            }
+        }
+
+        // Continuously observe side nav items changes from DataStore
+        viewModelScope.launch(Dispatchers.IO) {
+            dataStoreRepository.sideNavItems.collect { items ->
+                _sideNavItems.value = items
+            }
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                firebaseRemoteConfigManager.fetchConfig()
+                val shouldShowMessage = firebaseRemoteConfigManager.getBoolean(
+                    FirebaseRemoteConfigManager.SHOW_DEVELOPER_MESSAGE,
+                    true // Default to true
+                )
+                _showDeveloperMessage.value = shouldShowMessage
+
+                val currentVersion = firebaseRemoteConfigManager.getCurrentAppVersion()
+                val latestVersion = firebaseRemoteConfigManager.getLatestVersion()
+                val updateUrl = firebaseRemoteConfigManager.getPlayStoreUrl()
+                val isUpdateAvailable = firebaseRemoteConfigManager.compareVersions(currentVersion, latestVersion) < 0
+                _isUpdateAvailable.value = isUpdateAvailable
+                _updateUrl.value = updateUrl
+
+            } catch (_: Exception) {
+                _showDeveloperMessage.value = true
+                _isUpdateAvailable.value = false
+            }
+        }
     }
 
     fun updateDisplayType(displayType: String) {
@@ -110,5 +168,23 @@ class SettingsViewmodel@Inject constructor(
             _questionDetailsViewMode.value = viewMode
             saveQuestionDetailsViewModeUseCase(viewMode)
         }
+    }
+
+    fun updateBottomNavItems(items: List<String>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _bottomNavItems.value = items
+            dataStoreRepository.saveBottomNavItems(items)
+        }
+    }
+
+    fun updateSideNavItems(items: List<String>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _sideNavItems.value = items
+            dataStoreRepository.saveSideNavItems(items)
+        }
+    }
+
+    fun getUpdateUrl(): String {
+        return _updateUrl.value
     }
 }

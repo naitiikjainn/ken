@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -13,31 +14,45 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.hilt.navigation.compose.hiltViewModel
+import android.content.Intent
+import androidx.core.net.toUri
 import com.devrachit.ken.R
 import com.devrachit.ken.presentation.screens.dashboard.settings.components.BadgeDisplayModeSelector
+import com.devrachit.ken.presentation.screens.dashboard.settings.components.DeveloperMessageCard
 import com.devrachit.ken.presentation.screens.dashboard.settings.components.DisplayTypeSelector
+import com.devrachit.ken.presentation.screens.dashboard.settings.components.NavigationPreferencesSelector
 import com.devrachit.ken.presentation.screens.dashboard.settings.components.QuestionDetailsViewModeSelector
 import com.devrachit.ken.presentation.screens.dashboard.settings.components.RecentSubmissionLimitSelector
-import com.devrachit.ken.ui.theme.TextStyleInter16Lh24Fw700
+import com.devrachit.ken.presentation.screens.dashboard.settings.components.ShareAppButton
+import com.devrachit.ken.presentation.screens.dashboard.settings.components.UpdateAppButton
 import com.devrachit.ken.ui.theme.TextStyleInter20Lh24Fw600
 import com.devrachit.ken.utility.composeUtility.sdp
 
 @Composable
 fun SettingsScreen() {
     val viewmodel = hiltViewModel<SettingsViewmodel>()
+    val context = LocalContext.current
     val currentDisplayType by viewmodel.displayType.collectAsState()
     val currentBadgeDisplayMode by viewmodel.badgeDisplayMode.collectAsState()
     val currentSubmissionLimit by viewmodel.recentSubmissionLimit.collectAsState()
     val currentQuestionDetailsViewMode by viewmodel.questionDetailsViewMode.collectAsState()
-    
+    val currentBottomNavItems by viewmodel.bottomNavItems.collectAsState()
+    val currentSideNavItems by viewmodel.sideNavItems.collectAsState()
+    val showDeveloperMessage by viewmodel.showDeveloperMessage.collectAsState()
+    val isUpdateAvailable by viewmodel.isUpdateAvailable.collectAsState()
+    val updateUrl by viewmodel.updateUrl.collectAsState()
+
     Column(
         modifier = Modifier
+            .systemBarsPadding()
             .fillMaxSize()
             .background(color = colorResource(R.color.bg_neutral))
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.sdp, vertical = 24.sdp)
+            .padding(horizontal = 20.sdp)
+
     ) {
         Text(
             text = "Settings",
@@ -45,7 +60,32 @@ fun SettingsScreen() {
             style = TextStyleInter20Lh24Fw600(),
             modifier = Modifier.padding(bottom = 16.sdp, top= 30.sdp)
         )
-        
+
+        if (isUpdateAvailable) {
+            UpdateAppButton(
+                onUpdateClick = {
+                    try {
+                        val intent = Intent(Intent.ACTION_VIEW, updateUrl.toUri())
+                        if (intent.resolveActivity(context.packageManager) != null) {
+                            context.startActivity(intent)
+                        }
+                    } catch (e: Exception) {
+                        val fallbackIntent = Intent(Intent.ACTION_VIEW, "https://play.google.com/store/apps/details?id=com.devrachit.ken".toUri())
+                        context.startActivity(fallbackIntent)
+                    }
+                }
+            )
+            Spacer(modifier = Modifier.height(12.sdp))
+        }
+
+        ShareAppButton()
+        Spacer(modifier = Modifier.height(16.sdp))
+
+        if (showDeveloperMessage) {
+            DeveloperMessageCard()
+            Spacer(modifier = Modifier.height(16.sdp))
+        }
+
         DisplayTypeSelector(
             currentDisplayType = currentDisplayType,
             onDisplayTypeChanged = { displayType ->
@@ -79,6 +119,20 @@ fun SettingsScreen() {
                 viewmodel.updateQuestionDetailsViewMode(viewMode)
             }
         )
-        Spacer(modifier = Modifier.height(100.sdp))
+
+        Spacer(modifier = Modifier.height(12.sdp))
+
+        NavigationPreferencesSelector(
+            currentBottomNavItems = currentBottomNavItems,
+            currentSideNavItems = currentSideNavItems,
+            onBottomNavItemsChanged = { items ->
+                viewmodel.updateBottomNavItems(items)
+            },
+            onSideNavItemsChanged = { items ->
+                viewmodel.updateSideNavItems(items)
+            }
+        )
+
+        Spacer(modifier = Modifier.height(20.sdp))
     }
 }

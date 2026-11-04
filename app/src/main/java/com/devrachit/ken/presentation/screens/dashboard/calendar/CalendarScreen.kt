@@ -28,6 +28,9 @@ import com.devrachit.ken.ui.theme.TextStyleInter14Lh20Fw400
 import com.devrachit.ken.ui.theme.TextStyleInter16Lh24Fw700
 import com.devrachit.ken.utility.composeUtility.sdp
 import java.time.LocalDate
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import com.devrachit.ken.presentation.screens.dashboard.calendar.widgets.MonthlyDifficultyStatsCard
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -83,29 +86,34 @@ fun CalendarScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 16.sdp, vertical = 12.sdp)
                     ) {
-                        // Problem of the Day Card
-                        val todayChallengePair = uiState.dailyChallenges.entries
-                            .filter { it.key <= uiState.currentDate }
-                            .maxByOrNull { it.key }
-                        
-                        todayChallengePair?.let { (date, challenge) ->
+                        // Problem of the Day Card - Use dedicated today's question API
+                        uiState.todayQuestion?.let { todayQuestion ->
+                            // Convert TodayQuestion to DailyChallenge format
+                            val todayChallenge = com.devrachit.ken.domain.models.DailyChallenge(
+                                date = todayQuestion.date,
+                                userStatus = todayQuestion.userStatus,
+                                link = todayQuestion.link,
+                                question = com.devrachit.ken.domain.models.ChallengeQuestion(
+                                    questionFrontendId = todayQuestion.question.questionFrontendId,
+                                    title = todayQuestion.question.title,
+                                    titleSlug = todayQuestion.question.titleSlug,
+                                    difficulty = todayQuestion.question.difficulty
+                                )
+                            )
+                            val todayDate = try {
+                                LocalDate.parse(todayQuestion.date)
+                            } catch (e: Exception) {
+                                LocalDate.now()
+                            }
+                            
                             ProblemOfTheDayCard(
-                                challenge = challenge,
-                                date = date,
+                                challenge = todayChallenge,
+                                date = todayDate,
                                 onQuestionClick = onQuestionClick,
                                 modifier = Modifier.padding(bottom = 16.sdp)
                             )
                         }
-                        
-//                        // Stats Card
-//                        if (uiState.dailyChallenges.isNotEmpty()) {
-//                            ChallengeStatsCard(
-//                                dailyChallenges = uiState.dailyChallenges,
-//                                displayedMonth = uiState.displayedMonth,
-//                                modifier = Modifier.padding(bottom = 16.sdp)
-//                            )
-//                        }
-                        
+
                         // Calendar Component
                         CalendarComponent(
                             viewModel = viewModel,
@@ -115,6 +123,15 @@ fun CalendarScreen(
                         )
 
                         Spacer(modifier = Modifier.height(16.sdp))
+
+                        // Monthly Difficulty Stats Card (moved to bottom)
+                        MonthlyDifficultyStatsCard(
+                            easyCount = uiState.easyCount,
+                            mediumCount = uiState.mediumCount,
+                            hardCount = uiState.hardCount,
+                            totalCount = uiState.totalCount,
+                            modifier = Modifier.padding(bottom = 16.sdp)
+                        )
 
                         // Instructions or additional info
                         CalendarInfo()
